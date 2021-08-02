@@ -1,0 +1,24 @@
+{
+  "name": "@domain.js/mcenter",
+  "version": "0.1.0",
+  "description": "domain.js center 消息任务通用模块",
+  "main": "index.js",
+  "scripts": {
+    "test": "export NODE_ENV=test && jest ./__test__ --coverage",
+    "test:watch": "export NODE_ENV=test && jest ./__test__ --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/domain-js/mcenter/.git"
+  },
+  "keywords": ["message", "event", "queue", "task", "domain.js"],
+  "author": "Redstone Zhao",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/domain-js/mcenter/issues"
+  },
+  "homepage": "https://github.com/domain-js/mcenter#readme",
+  "devDependencies": {
+    "jest": "^24.9.0"
+  }
+}
