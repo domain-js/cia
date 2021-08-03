@@ -11,7 +11,13 @@
     "type": "git",
     "url": "git+ssh://git@github.com/domain-js/mcenter/.git"
   },
-  "keywords": ["message", "event", "queue", "task", "domain.js"],
+  "keywords": [
+    "message",
+    "event",
+    "queue",
+    "task",
+    "domain.js"
+  ],
   "author": "Redstone Zhao",
   "license": "MIT",
   "bugs": {
@@ -20,5 +26,8 @@
   "homepage": "https://github.com/domain-js/mcenter#readme",
   "devDependencies": {
     "jest": "^24.9.0"
+  },
+  "dependencies": {
+    "uuid": "^8.3.2"
   }
 }

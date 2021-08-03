@@ -1,9 +1,13 @@
-const Before = require("./Before");
-const After = require("./After");
+const uuid = require("uuid").v4;
 const Errors = require("./errors");
 
 function Main(cnf, deps) {
-  const { _, logger } = deps;
+  const {
+    _,
+    logger,
+    graceful,
+    U: { tryCatchLog },
+  } = deps;
   const maxListeners = Math.max(1, ((cnf.mcenter && cnf.mcenter.maxListeners) || 10) | 0);
   const { async } = deps;
 
@@ -17,11 +21,11 @@ function Main(cnf, deps) {
   // 记录已注册的消息
   // { [name]: { validator, types } };
   // name: String 消息名称
-  // validator: Function 消息体数据格式验证函数
+  // validator?: Function 消息体数据格式验证函数
   // types: [{
   //    type: 'updateUser', // 类型名称
-  //    timeout: 100, // 执行超时限定, 单位毫秒，可选 默认为 0, 不限制
-  //    validator: fn, // 返回值格式验证函数, 可选
+  //    timeout?: 100, // 执行超时限定, 单位毫秒，可选 默认为 0, 不限制
+  //    validator?: fn, // 返回值格式验证函数, 可选
   // }]
   const registed = {};
 
@@ -81,8 +85,9 @@ function Main(cnf, deps) {
   const publish = (name, data, callback) => {
     if (!registed[name]) throw errors.publishUnregistedMessage(name);
     const { validator } = registed[name];
-    validator(data);
-    queue.push({ name, data, callback });
+    if (validator) validator(data);
+    const id = uuid();
+    queue.push({ id, name, data, callback });
   };
 
   // 设置通知函数，错误通知，超时通知
@@ -92,7 +97,9 @@ function Main(cnf, deps) {
   // fn function 通知函数
   const setFn = (type, fn) => {
     if (!fns[type]) throw errors.setFnNotAllowed(type);
-    fns[type] = fn;
+    // 这里之所以会用 tryCatchLog 封装函数，是不想让这些函数的执行影响主流程
+    // 这些函数内部抛出的异常不会导致主流程执行中断
+    fns[type] = tryCatchLog(fn, logger.error);
   };
 
   // check 消息注册、监听检测
@@ -113,7 +120,5 @@ function Main(cnf, deps) {
 }
 
 Main.Deps = ["_", "async", "logger", "utils"];
-Main.Before = Before;
-Main.After = After;
 
 module.exports = Main;
