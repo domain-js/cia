@@ -5,10 +5,15 @@ function Main(cnf, deps) {
   const {
     _,
     logger,
+    redis,
     graceful,
     U: { tryCatchLog },
   } = deps;
-  const maxListeners = Math.max(1, ((cnf.mcenter && cnf.mcenter.maxListeners) || 10) | 0);
+
+  const { mcenter } = cnf;
+
+  const maxListeners = Math.max(1, ((mcenter && mcenter.maxListeners) || 10) | 0);
+  const storeHashKey = (mcenter && mcenter.hash && mcenter.hash.key) || "mcenter";
   const { async } = deps;
 
   const errors = Errors(cnf, deps);
@@ -17,7 +22,6 @@ function Main(cnf, deps) {
     error: logger.error,
     timeout: logger.info,
   };
-
   // 记录已注册的消息
   // { [name]: { validator, types } };
   // name: String 消息名称
@@ -33,12 +37,31 @@ function Main(cnf, deps) {
   // { [${name}::${type}]: { [type]: fn } }
   const listeners = new Map();
 
+  let exiting = false;
+  let exitingCount = 0;
+  let readyToExitFn = null;
+
+  // 利用redis 来存储未执行，或未完全执行的数据
+  const store = async (item) => {
+    exitingCount += 1;
+    await redis.hset(storeHashKey, item.id, JSON.stringify(item));
+    exitingCount -= 1;
+    if (exitingCount === 0) readyToExitFn();
+  };
+
   // 消息分发函数，分发到对应的订阅函数上
-  const dispatch = async ({ name, data, callback }) => {
+  const dispatch = async (item) => {
+    const { id, name, data, result = {}, callback } = item;
+
     const { types } = registed[name];
-    const result = {};
+    const withouts = new Set(Object.keys(result));
 
     await async.mapSeries(types, async ({ type, timeout, validator }) => {
+      // 看看是否有设置要忽略掉某些订阅者
+      // 这个功能主要是留给应用无故中断后系统自动恢复的任务执行
+      if (withouts && withouts.has(type)) return;
+      if (exiting) return;
+
       const fn = listeners.get(`${name}::${type}`);
       const startAt = Date.now();
       let err = null;
@@ -47,19 +70,50 @@ function Main(cnf, deps) {
         ret = await fn(data);
         if (validator) validator(ret);
       } catch (e) {
-        fns.error(e, name, data, type);
+        fns.error(e, name, type, data);
         err = e;
       }
       const consumedMS = Date.now() - startAt;
-      if (timeout && timeout < consumedMS) fns.timeout(consumedMS, name, data, type);
+      if (timeout && timeout < consumedMS) fns.timeout(consumedMS, id, name, type, data);
       result[type] = [err, ret, consumedMS];
+
+      // 记录执行结果
+      logger.info(`MCenter.dispatch\t${id}\t${type}`, result[type]);
     });
 
-    if (callback) callback(result);
+    // 正在退出，且完成的不等于总共的，则需要储存, 以备下次启动后执行
+    if (exiting && Object.keys(result).length !== types.length) {
+      item.result = result;
+      store(item);
+    } else if (callback) {
+      callback(result);
+    }
   };
 
   // 内部消息队列
   const queue = async.queue(dispatch, maxListeners);
+  graceful.exit(() => {
+    exiting = true;
+
+    return new Promise((resolve) => {
+      readyToExitFn = resolve;
+    });
+  });
+
+  // 恢复上次残留的消息订阅执行
+  const recover = async () => {
+    const items = await redis.hgetall(storeHashKey);
+    for await (const id of Object.keys(items)) {
+      const item = items[id];
+      const ok = await redis.hdel(storeHashKey, id);
+      if (ok !== 1) continue;
+      try {
+        queue.push(JSON.parse(item));
+      } catch (e) {
+        logger.error(e);
+      }
+    }
+  };
 
   // regist 消息注册，提前注册好需要publish和subscribe的消息
   // 这么做的目的是可以随时检测是否所有的消息都消费者，消费者类型是否正确
@@ -88,6 +142,7 @@ function Main(cnf, deps) {
     if (validator) validator(data);
     const id = uuid();
     queue.push({ id, name, data, callback });
+    logger.info(`MCenter.publish\t${id}`, { name, data });
   };
 
   // 设置通知函数，错误通知，超时通知
@@ -116,9 +171,9 @@ function Main(cnf, deps) {
     return result;
   };
 
-  return { regist, check, subscribe, publish, setFn };
+  return { regist, check, subscribe, publish, setFn, recover };
 }
 
-Main.Deps = ["_", "async", "logger", "utils"];
+Main.Deps = ["_", "async", "logger", "utils", "redis"];
 
 module.exports = Main;
