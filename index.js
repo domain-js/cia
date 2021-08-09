@@ -3,7 +3,6 @@ const Errors = require("./errors");
 
 function Main(cnf, deps) {
   const {
-    _,
     logger,
     redis,
     graceful,
@@ -120,7 +119,9 @@ function Main(cnf, deps) {
   // 同时在publish的时候也可以检测发送的数据是否符合规定的格式
   const regist = (name, validator, types) => {
     if (registed[name]) throw errors.duplicatRegistMessage(name);
-    registed[name] = { validator, types, typeNames: new Set(_.map(types, "type")) };
+    registed[name] = { validator, types, typeNames: new Set(types.map((x) => x.type)) };
+
+    return Object.keys(registed).length;
   };
 
   // subscribe 消息订阅
@@ -129,7 +130,10 @@ function Main(cnf, deps) {
     const { typeNames } = registed[name];
     if (!typeNames.has(type)) throw errors.subscribeUnknowTypes(name, type);
 
-    listeners.set(`${name}::${type}`, listener);
+    const key = `${name}::${type}`;
+    if (listeners.get(key)) throw errors.subscribeDuplicateType(name, type);
+
+    listeners.set(key, listener);
   };
 
   // publish 消息发布
@@ -174,6 +178,6 @@ function Main(cnf, deps) {
   return { regist, check, subscribe, publish, setFn, recover };
 }
 
-Main.Deps = ["_", "async", "logger", "utils", "redis"];
+Main.Deps = ["async", "logger", "utils", "redis"];
 
 module.exports = Main;

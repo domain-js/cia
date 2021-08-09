@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/domain-js/mcenter#readme",
   "devDependencies": {
+    "async": "^3.2.1",
     "jest": "^24.9.0"
   },
   "dependencies": {
