@@ -16,11 +16,13 @@ function Main(cnf, deps) {
   const { async } = deps;
 
   const errors = Errors(cnf, deps);
-  // 默认通知函数
-  const fns = {
-    error: logger.error,
-    timeout: logger.info,
-  };
+
+  let exiting = false; // 是否正在退出
+  let exitingCount = 0; // 退出时store操作计数器
+  let readyToExitFn = null; // 完成退出前准备后执行函数
+  let unsubscribedCount = 0; // 未被订阅的数量, 基于 {name}::{type} 判断
+  let isReady = false; // 系统是否已准备妥当
+
   // 记录已注册的消息
   // { [name]: { validator, types } };
   // name: String 消息名称
@@ -32,13 +34,15 @@ function Main(cnf, deps) {
   // }]
   const registed = {};
 
+  // 默认通知函数
+  const fns = {
+    error: logger.error,
+    timeout: logger.info,
+  };
+
   // 记录监听回调函数
   // { [${name}::${type}]: { [type]: fn } }
   const listeners = new Map();
-
-  let exiting = false;
-  let exitingCount = 0;
-  let readyToExitFn = null;
 
   // 利用redis 来存储未执行，或未完全执行的数据
   const store = async (item) => {
@@ -69,11 +73,11 @@ function Main(cnf, deps) {
         ret = await fn(data);
         if (validator) validator(ret);
       } catch (e) {
-        fns.error(e, name, type, data);
+        fns.error(e, id, name, type, data);
         err = e;
       }
       const consumedMS = Date.now() - startAt;
-      if (timeout && timeout < consumedMS) fns.timeout(consumedMS, id, name, type, data);
+      if (timeout && timeout < consumedMS) fns.timeout(consumedMS, id, name, type);
       result[type] = [err, ret, consumedMS];
 
       // 记录执行结果
@@ -89,8 +93,13 @@ function Main(cnf, deps) {
     }
   };
 
-  // 内部消息队列
+  // 内部消息队列, 初始化后立即暂定，等待 regist, subscribe 都准备好了在开始执行
+  // 这样就不会有未成功订阅函数执行遗漏的问题了
+  // 例如: A 函数要监听 1 好消息的 save 类型，结果在完成订阅前，已经有某个区域 publish 了 1 号事件
+  //       如果队列一开始不暂停就会出现A函数遗漏执行
   const queue = async.queue(dispatch, maxListeners);
+  queue.pause();
+
   graceful.exit(() => {
     exiting = true;
 
@@ -102,6 +111,7 @@ function Main(cnf, deps) {
   // 恢复上次残留的消息订阅执行
   const recover = async () => {
     const items = await redis.hgetall(storeHashKey);
+    if (!items) return;
     for await (const id of Object.keys(items)) {
       const item = items[id];
       const ok = await redis.hdel(storeHashKey, id);
@@ -118,8 +128,13 @@ function Main(cnf, deps) {
   // 这么做的目的是可以随时检测是否所有的消息都消费者，消费者类型是否正确
   // 同时在publish的时候也可以检测发送的数据是否符合规定的格式
   const regist = (name, validator, types) => {
+    if (isReady) throw errors.registWhenReadyAfter(name);
     if (registed[name]) throw errors.duplicatRegistMessage(name);
-    registed[name] = { validator, types, typeNames: new Set(types.map((x) => x.type)) };
+    const typeNames = new Set(types.map((x) => x.type));
+    const item = { validator, types, typeNames };
+
+    unsubscribedCount += typeNames.size;
+    registed[name] = item;
 
     return Object.keys(registed).length;
   };
@@ -132,8 +147,10 @@ function Main(cnf, deps) {
 
     const key = `${name}::${type}`;
     if (listeners.get(key)) throw errors.subscribeDuplicateType(name, type);
-
     listeners.set(key, listener);
+
+    unsubscribedCount -= 1;
+    checkReady();
   };
 
   // publish 消息发布
@@ -163,19 +180,20 @@ function Main(cnf, deps) {
 
   // check 消息注册、监听检测
   // 检查是否存在注册了的消息，但没有人监听消费
-  const check = () => {
-    const result = [];
-    for (const name of Object.keys(registed)) {
-      for (const type of registed[name]) {
-        if (listeners.get(`${name}::${type.type}`)) continue;
-        result.push([name, type.type]);
-      }
-    }
-
-    return result;
+  const checkReady = () => {
+    if (unsubscribedCount !== 0) return false;
+    if (isReady) return true;
+    isReady = true;
+    start();
   };
 
-  return { regist, check, subscribe, publish, setFn, recover };
+  // start 启动系统执行, 这之前一定要regist 和 subscribe 都准备好
+  const start = async () => {
+    queue.resume();
+    await recover();
+  };
+
+  return { regist, checkReady, subscribe, publish, setFn };
 }
 
 Main.Deps = ["async", "logger", "utils", "redis"];

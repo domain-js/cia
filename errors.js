@@ -3,11 +3,14 @@ module.exports = () =>
     duplicatRegistMessage(name) {
       return Error(`The message has been registed: ${name}`);
     },
+    registWhenReadyAfter(name) {
+      return Error(`The message dont registed when mcenter be ready after: ${name}`);
+    },
     publishUnregistedMessage(name) {
-      return Error(`The message has not be registed: ${name}, when will publish`);
+      return Error(`The message has not been registed: ${name}, when will publish`);
     },
     subscribeUnregistedMessage(name) {
-      return Error(`The message has not be registed: ${name}, when will subscribe`);
+      return Error(`The message has not been registed: ${name}, when will subscribe`);
     },
     subscribeUnknowTypes(name, type) {
       return Error(
@@ -20,6 +23,6 @@ module.exports = () =>
       );
     },
     setFnNotAllowed(type) {
-      return Error(`Set function but unknow type: ${type}`);
+      return Error(`Set function but unknown type: ${type}`);
     },
   });
