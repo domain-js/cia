@@ -359,5 +359,10 @@ describe("MCenter", () => {
       expect(type).toBe("save");
       expect(data).toEqual({ name: "happen error" });
     });
+
+    it("publish, case6, callback exists but inst a function", async () => {
+      mcenter.publish("test", { name: "redstone1" }, "hello");
+      expect(mcenter.checkReady()).toBe(true);
+    });
   });
 });
