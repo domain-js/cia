@@ -13,7 +13,10 @@ const sleep = (MS = 1000) =>
 
 describe("MCenter", () => {
   const cnf = {
-    mcenter: {},
+    mcenter: {
+      maxListeners: 2,
+      hash: { key: "mcenter-store" },
+    },
   };
   const logger = {
     info: jest.fn(),
@@ -84,23 +87,6 @@ describe("MCenter", () => {
       U: { tryCatchLog },
     };
     const mcenter = MCenter(cnf, deps);
-    redis.hgetall.mockResolvedValueOnce({
-      message_uuid: JSON.stringify({
-        id: "message uuid",
-        name: "test",
-        data: { name: "recover message" },
-        result: {
-          save: [null, { value: "testSave" }, 301],
-        },
-      }),
-      message_uuid2: JSON.stringify({
-        id: "message uuid2",
-        name: "test",
-        data: { name: "recover message" },
-      }),
-      message_uuid3: "hello world",
-    });
-    redis.hdel.mockResolvedValueOnce(1).mockResolvedValueOnce(0).mockResolvedValueOnce(1);
 
     it("regist", async () => {
       const types = [
@@ -125,13 +111,28 @@ describe("MCenter", () => {
       await sleep(500);
     });
 
-    it("recover check", async () => {
-      expect(listeners.testCleanCache.mock.calls.length).toBe(1);
-      expect(listeners.testCleanCache.mock.calls.pop()).toEqual([{ name: "recover message" }]);
+    it("mulit publish and graceful.exit", async () => {
+      _.times(3, (index) => {
+        mcenter.publish("test", { name: "stonephp", index });
+      });
 
-      expect(listeners.testSave.mock.calls.length).toBe(0);
+      await sleep(500);
+      expect(graceful.exit.mock.calls.length).toBe(1);
+      const [exit] = graceful.exit.mock.calls.pop();
+      exit();
+      expect(mcenter.isExited()).toBe(false);
+      expect(mcenter.isExiting()).toBe(true);
+      await sleep(1000);
+      expect(mcenter.isExited()).toBe(true);
+      expect(mcenter.isExiting()).toBe(false);
 
-      expect(logger.error.mock.calls.length).toBe(1);
+      expect(redis.hset.mock.calls.length).toBe(1);
+      const [redisKey, id, value] = redis.hset.mock.calls.pop();
+      expect(redisKey).toBe("mcenter-store");
+      expect(id.length).toBe(36);
+      expect(value).toBe(
+        JSON.stringify({ id, name: "test", data: { name: "stonephp", index: 2 }, result: {} }),
+      );
     });
   });
 });

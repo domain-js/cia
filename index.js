@@ -18,8 +18,10 @@ function Main(cnf, deps) {
 
   const errors = Errors(cnf, deps);
 
+  let doingCount = 0; // 正在执行的消息数量
+  let exited = false; // 是否已经完成退出
   let exiting = false; // 是否正在退出
-  let exitingCount = 0; // 退出时store操作计数器
+  let storeCount = 0; // 退出时store操作计数器
   let readyToExitFn = null; // 完成退出前准备后执行函数
   let unsubscribedCount = 0; // 未被订阅的数量, 基于 {name}::{type} 判断
   let isReady = false; // 系统是否已准备妥当
@@ -45,14 +47,6 @@ function Main(cnf, deps) {
   // { [${name}::${type}]: { [type]: fn } }
   const listeners = new Map();
 
-  // 利用redis 来存储未执行，或未完全执行的数据
-  const store = async (item) => {
-    exitingCount += 1;
-    await redis.hset(storeHashKey, item.id, JSON.stringify(item));
-    exitingCount -= 1;
-    if (exitingCount === 0) readyToExitFn();
-  };
-
   // 消息分发函数，分发到对应的订阅函数上
   const dispatch = async (item) => {
     const { id, name, data, result = {}, callback } = item;
@@ -60,6 +54,7 @@ function Main(cnf, deps) {
     const { types } = registed[name];
     const withouts = new Set(Object.keys(result));
 
+    doingCount += 1;
     await async.mapSeries(types, async ({ type, timeout, validator }) => {
       // 看看是否有设置要忽略掉某些订阅者
       // 这个功能主要是留给应用无故中断后系统自动恢复的任务执行
@@ -84,13 +79,24 @@ function Main(cnf, deps) {
       // 记录执行结果
       logger.info(`MCenter.dispatch\t${id}\t${type}`, result[type]);
     });
+    doingCount -= 1;
+
+    // publish 设置了callback 要记得执行回调函数
+    if (callback) callback(result);
 
     // 正在退出，且完成的不等于总共的，则需要储存, 以备下次启动后执行
-    if (exiting && Object.keys(result).length !== types.length) {
-      item.result = result;
-      store(item);
-    } else if (callback) {
-      callback(result);
+    if (exiting) {
+      if (Object.keys(result).length !== types.length) {
+        item.result = result;
+        // 存储以备下次启动恢复执行
+        await redis.hset(storeHashKey, item.id, JSON.stringify(item));
+      }
+      // 全部处理完毕后，执行退出
+      if (!doingCount) {
+        exited = true;
+        exiting = false;
+        readyToExitFn();
+      }
     }
   };
 
@@ -105,7 +111,14 @@ function Main(cnf, deps) {
     exiting = true;
 
     return new Promise((resolve) => {
-      readyToExitFn = resolve;
+      // 如果队列已经清空，且没有正在执行的消息，则直接退出
+      if (!queue.length() && !doingCount) {
+        exited = true;
+        exiting = false;
+        resolve();
+      } else {
+        readyToExitFn = resolve;
+      }
     });
   });
 
@@ -138,6 +151,23 @@ function Main(cnf, deps) {
     registed[name] = item;
 
     return Object.keys(registed).length;
+  };
+
+  // start 启动系统执行, 这之前一定要regist 和 subscribe 都准备好
+  const start = async () => {
+    queue.resume();
+    await recover();
+  };
+
+  // check 消息注册、监听检测
+  // 检查是否存在注册了的消息，但没有人监听消费
+  const checkReady = () => {
+    if (unsubscribedCount !== 0) return false;
+    if (!isReady) {
+      isReady = true;
+      start();
+    }
+    return true;
   };
 
   // subscribe 消息订阅
@@ -182,22 +212,13 @@ function Main(cnf, deps) {
     fns[type] = tryCatchLog(fn, logger.error);
   };
 
-  // check 消息注册、监听检测
-  // 检查是否存在注册了的消息，但没有人监听消费
-  const checkReady = () => {
-    if (unsubscribedCount !== 0) return false;
-    if (isReady) return true;
-    isReady = true;
-    start();
-  };
+  // 进程是否正在退出
+  const isExiting = () => Boolean(exiting);
 
-  // start 启动系统执行, 这之前一定要regist 和 subscribe 都准备好
-  const start = async () => {
-    queue.resume();
-    await recover();
-  };
+  // 进程是否已经退出
+  const isExited = () => Boolean(exited);
 
-  return { regist, checkReady, subscribe, publish, setFn };
+  return { isExiting, isExited, regist, checkReady, subscribe, publish, setFn };
 }
 
 Main.Deps = ["_", "async", "logger", "utils", "redis"];
