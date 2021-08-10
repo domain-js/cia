@@ -22,6 +22,11 @@ module.exports = () =>
         `The message subscribe type duplicate, message name is: ${name}, type is: ${type}, when will subscribe`,
       );
     },
+    subscribeListernerMustBeFunctionType(name, type) {
+      return Error(
+        `The message subscribe listener must be a function, message name is: ${name}, type is: ${type}, when will subscribe`,
+      );
+    },
     setFnNotAllowed(type) {
       return Error(`Set function but unknown type: ${type}`);
     },

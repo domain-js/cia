@@ -3,6 +3,7 @@ const Errors = require("./errors");
 
 function Main(cnf, deps) {
   const {
+    _,
     logger,
     redis,
     graceful,
@@ -130,7 +131,7 @@ function Main(cnf, deps) {
   const regist = (name, validator, types) => {
     if (isReady) throw errors.registWhenReadyAfter(name);
     if (registed[name]) throw errors.duplicatRegistMessage(name);
-    const typeNames = new Set(types.map((x) => x.type));
+    const typeNames = new Set(_.map(types, "type"));
     const item = { validator, types, typeNames };
 
     unsubscribedCount += typeNames.size;
@@ -144,6 +145,8 @@ function Main(cnf, deps) {
     if (!registed[name]) throw errors.subscribeUnregistedMessage(name);
     const { typeNames } = registed[name];
     if (!typeNames.has(type)) throw errors.subscribeUnknowTypes(name, type);
+
+    if (!_.isFunction(listener)) throw errors.subscribeListernerMustBeFunctionType(name, type);
 
     const key = `${name}::${type}`;
     if (listeners.get(key)) throw errors.subscribeDuplicateType(name, type);
@@ -159,6 +162,7 @@ function Main(cnf, deps) {
   // callback function 消息执行完毕回调
   const publish = (name, data, callback) => {
     if (!registed[name]) throw errors.publishUnregistedMessage(name);
+    if (callback && !_.isFunction(callback)) callback = undefined;
     const { validator } = registed[name];
     if (validator) validator(data);
     const id = uuid();
@@ -196,6 +200,6 @@ function Main(cnf, deps) {
   return { regist, checkReady, subscribe, publish, setFn };
 }
 
-Main.Deps = ["async", "logger", "utils", "redis"];
+Main.Deps = ["_", "async", "logger", "utils", "redis"];
 
 module.exports = Main;
