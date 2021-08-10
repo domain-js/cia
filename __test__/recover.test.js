@@ -24,13 +24,6 @@ describe("MCenter", () => {
   };
   const tryCatchLog = jest.fn((fn) => fn);
 
-  const callbacks = {
-    test: jest.fn(),
-    test2: jest.fn(),
-    test3: jest.fn(),
-    test4: jest.fn(),
-  };
-
   const listeners = {
     testSave: jest.fn(async () => {
       await sleep(300);
@@ -40,29 +33,10 @@ describe("MCenter", () => {
       await sleep(300);
       return { value: "cleanCache" };
     }),
-    test2Save: jest.fn(async () => {
-      await sleep(300);
-      return { value: "test2Save" };
-    }),
-    test3Save: jest.fn(async () => {
-      await sleep(300);
-      return { value: "test3Save" };
-    }),
-    test4Save: jest.fn(async () => {
-      await sleep(300);
-      return { value: "test4Save" };
-    }),
-    test4UpdateCache: jest.fn(async () => {
-      await sleep(300);
-      return { value: "test4UpdateCache" };
-    }),
   };
 
   const publishValidators = {
     test: jest.fn(),
-    test2: jest.fn(),
-    test3: jest.fn(),
-    test4: jest.fn(),
   };
 
   const listenerValidators = {

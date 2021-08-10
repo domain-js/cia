@@ -39,10 +39,6 @@ describe("MCenter", () => {
       await sleep(300);
       return { value: "testSave" };
     }),
-    testCleanCache: jest.fn(async () => {
-      await sleep(300);
-      return { value: "cleanCache" };
-    }),
     test2Save: jest.fn(async () => {
       await sleep(300);
       return { value: "test2Save" };
@@ -213,6 +209,13 @@ describe("MCenter", () => {
     it("subscribe, faild case3", async () => {
       expect(() => mcenter.subscribe("test4", "save", listeners.test4Save)).toThrow(
         "subscribe type duplicate",
+      );
+      expect(mcenter.checkReady()).toBe(false);
+    });
+
+    it("subscribe, faild case4", async () => {
+      expect(() => mcenter.subscribe("test4", "save", listeners.test4noExists)).toThrow(
+        "must be a function",
       );
       expect(mcenter.checkReady()).toBe(false);
     });
