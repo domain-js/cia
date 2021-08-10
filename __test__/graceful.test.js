@@ -22,17 +22,7 @@ describe("MCenter", () => {
     info: jest.fn(),
     error: jest.fn(),
   };
-  const graceful = {
-    exit: jest.fn(),
-  };
   const tryCatchLog = jest.fn((fn) => fn);
-
-  const callbacks = {
-    test: jest.fn(),
-    test2: jest.fn(),
-    test3: jest.fn(),
-    test4: jest.fn(),
-  };
 
   const listeners = {
     testSave: jest.fn(async () => {
@@ -73,6 +63,9 @@ describe("MCenter", () => {
   };
 
   describe("have to recover", () => {
+    const graceful = {
+      exit: jest.fn(),
+    };
     const redis = {
       hset: jest.fn(),
       hdel: jest.fn(),
@@ -133,6 +126,36 @@ describe("MCenter", () => {
       expect(value).toBe(
         JSON.stringify({ id, name: "test", data: { name: "stonephp", index: 2 }, result: {} }),
       );
+    });
+  });
+
+  describe("exit when queue is empty", () => {
+    const graceful = {
+      exit: jest.fn(),
+    };
+    const redis = {
+      hset: jest.fn(),
+      hdel: jest.fn(),
+      hgetall: jest.fn(),
+    };
+    const deps = {
+      _,
+      async,
+      logger,
+      redis,
+      graceful,
+      U: { tryCatchLog },
+    };
+    const mcenter = MCenter(cnf, deps);
+
+    it("graceful.exit queue is empty", async () => {
+      expect(graceful.exit.mock.calls.length).toBe(1);
+      const [exit] = graceful.exit.mock.calls.pop();
+      exit();
+      expect(mcenter.isExited()).toBe(true);
+      expect(mcenter.isExiting()).toBe(false);
+
+      expect(redis.hset.mock.calls.length).toBe(0);
     });
   });
 });
