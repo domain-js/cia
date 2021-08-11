@@ -10,7 +10,7 @@
 专属配置名称 `cia`
 | 名称 | 类型 | 必填 | 默认值 | 描述 | 样例 |
 | ---- | ---- | ---- | ------ | ---- | ---- |
-| maxListeners | int | No | 10 | task exec concurrency | 10 |
+| concurrency | int | No | 10 | task exec concurrency | 10 |
 | storeKey | string | No | cia-store | redis storage hash key | cia-store |
 
 # deps
