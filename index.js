@@ -13,7 +13,7 @@ function Main(cnf, deps) {
   const { mcenter } = cnf;
 
   const maxListeners = Math.max(1, ((mcenter && mcenter.maxListeners) || 10) | 0);
-  const storeHashKey = (mcenter && mcenter.hash && mcenter.hash.key) || "mcenter";
+  const storeKey = (mcenter && mcenter.storeKey) || "mcenter";
   const { async } = deps;
 
   const errors = Errors(cnf, deps);
@@ -55,7 +55,7 @@ function Main(cnf, deps) {
     const withouts = new Set(Object.keys(result));
 
     doingCount += 1;
-    await async.mapSeries(types, async ({ type, timeout, validator }) => {
+    await async.eachSeries(types, async ({ type, timeout, validator }) => {
       // 看看是否有设置要忽略掉某些订阅者
       // 这个功能主要是留给应用无故中断后系统自动恢复的任务执行
       if (withouts && withouts.has(type)) return;
@@ -89,7 +89,7 @@ function Main(cnf, deps) {
       if (Object.keys(result).length !== types.length) {
         item.result = result;
         // 存储以备下次启动恢复执行
-        await redis.hset(storeHashKey, item.id, JSON.stringify(item));
+        await redis.hset(storeKey, item.id, JSON.stringify(item));
       }
       // 全部处理完毕后，执行退出
       if (!doingCount) {
@@ -124,11 +124,11 @@ function Main(cnf, deps) {
 
   // 恢复上次残留的消息订阅执行
   const recover = async () => {
-    const items = await redis.hgetall(storeHashKey);
+    const items = await redis.hgetall(storeKey);
     if (!items) return;
     for await (const id of Object.keys(items)) {
       const item = items[id];
-      const ok = await redis.hdel(storeHashKey, id);
+      const ok = await redis.hdel(storeKey, id);
       if (ok !== 1) continue;
       try {
         queue.push(JSON.parse(item));

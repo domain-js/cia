@@ -15,7 +15,7 @@ describe("MCenter", () => {
   const cnf = {
     mcenter: {
       maxListeners: 2,
-      hash: { key: "mcenter-store" },
+      storeKey: "mcenter-store",
     },
   };
   const logger = {

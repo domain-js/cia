@@ -1,24 +1,73 @@
-# @domain.js/center
+# @domain.js/mcenter
 
-[![Build status](https://travis-ci.com/domain-js/center.svg?branch=master)](https://travis-ci.org/domain-js/center)
-[![codecov](https://codecov.io/gh/domain-js/center/branch/master/graph/badge.svg)](https://codecov.io/gh/domain-js/center)
+[![Build status](https://travis-ci.com/domain-js/mcenter.svg?branch=master)](https://travis-ci.org/domain-js/mcenter)
+[![codecov](https://codecov.io/gh/domain-js/mcenter/branch/master/graph/badge.svg)](https://codecov.io/gh/domain-js/mcenter)
 
 # Installation
-<pre>npm i @domain.js/center --save</pre>
+<pre>npm i @domain.js/mcenter --save</pre>
 
 # cnf
-专属配置名称 `center`
+专属配置名称 `mcenter`
 | 名称 | 类型 | 必填 | 默认值 | 描述 | 样例 |
 | ---- | ---- | ---- | ------ | ---- | ---- |
-|      |      |      |        |      |      |
+| maxListeners | int | No | 10 | task exec concurrency | 10 |
+| storeKey | string | No | mcenter-store | redis storage hash key | mcenter-store |
 
 # deps
 | 模块名 | 别名 | 用到的方法 | 描述 |
 | ------ | ---- | ---------- | ---- |
-|        |      |            |      |
+| _ | None | isFunction, map  | lodash |
+| async | None | eachSeries, queue| npm i async |
+| logger | None | info, error | domain.js/logger |
+| utils | U | tryCatchLog | utils functions |
+| redis | None | hset, hdel, hgetall | domain.js/redis | 
 
 
 # Usage
-| 功能 | 描述 | 样例 |
-| ---- | ---- | ---- |
-|      |      |      |
+
+## `regist`
+注册消息到系统，提前注册的好处是可以预知有那些消息，都需要什么样的订阅者
+* `eventName` string 必填 消息名称
+* `validator` function 可选 消息数据验证函数
+* `types` [Object]
+  * `type` string 必填 订阅者类型名称
+  * `timeout` integer 可选 订阅函数执行的超时限定, 单位毫秒，超时也不会中断，只是会触发一次超时函数的执行
+  * `validator` function 可选，订阅函数返回值验证函数，校验失败直接抛出异常
+
+```javascript
+mcenter.regist('eventName', publishValidatorFunction, [
+  {
+    type: 'cleanCache', // 必填 订阅的名称
+    timeout: 1000, // 可选 
+  }
+]);
+```
+
+## `subscribe`
+订阅消息, 当有订阅的消息是会把消息内容传递给监听函数
+* `eventName` string 必填 消息名称
+* `type` string 必填 订阅者类型，要和 regist types里的type匹配
+* `listener` function 必填 订阅函数
+
+```javascript
+mcenter.subscribe('eventName', 'cleanCache', listener);
+```
+
+## `publish`
+消息发布函数，当有消息产生的时候通过改函数发布上去
+* `eventName` string 必填 消息名称
+* `data` any 必填 消息体数据
+
+## `setFn`
+设置超时函数和执行订阅错误接收函数, 不设置的时候默认是 logger.info 和 logger.error
+* `type` string 必填 函数类型，`timeout` 或 `error`
+* `function` function 必填 设置的函数
+
+## `checkReady` 
+检测系统是否已准备好，返回 `ture` 或 `false`
+
+## `isExiting`
+获取系统是否正在退出中，返回 `true` 或 `false`
+
+## `isExited`
+获取系统是否已退出，返回 `true` 或 `false`
