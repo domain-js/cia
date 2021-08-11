@@ -13,9 +13,9 @@ const sleep = (MS = 1000) =>
 
 describe("MCenter", () => {
   const cnf = {
-    mcenter: {
+    cia: {
       maxListeners: 10,
-      hash: { key: "mcenter-store" },
+      hash: { key: "cia-store" },
     },
   };
   const logger = {
@@ -85,9 +85,9 @@ describe("MCenter", () => {
       graceful,
       U: { tryCatchLog },
     };
-    const mcenter = MCenter(cnf, deps);
-    mcenter.setFn("timeout", timeoutFn);
-    mcenter.setFn("error", errorFn);
+    const cia = MCenter(cnf, deps);
+    cia.setFn("timeout", timeoutFn);
+    cia.setFn("error", errorFn);
 
     it("regist, case1", async () => {
       const types = [
@@ -97,8 +97,8 @@ describe("MCenter", () => {
           validator: listenerValidators.test,
         },
       ];
-      expect(mcenter.regist("test", publishValidators.test, types)).toBe(1);
-      expect(mcenter.checkReady()).toBe(false);
+      expect(cia.regist("test", publishValidators.test, types)).toBe(1);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("regist, case2", async () => {
@@ -108,8 +108,8 @@ describe("MCenter", () => {
           timeout: 20,
         },
       ];
-      expect(mcenter.regist("test2", publishValidators.test2, types)).toBe(2);
-      expect(mcenter.checkReady()).toBe(false);
+      expect(cia.regist("test2", publishValidators.test2, types)).toBe(2);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("regist, case3", async () => {
@@ -118,8 +118,8 @@ describe("MCenter", () => {
           type: "save",
         },
       ];
-      expect(mcenter.regist("test3", publishValidators.test3, types)).toBe(3);
-      expect(mcenter.checkReady()).toBe(false);
+      expect(cia.regist("test3", publishValidators.test3, types)).toBe(3);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("regist, case4", async () => {
@@ -131,8 +131,8 @@ describe("MCenter", () => {
           type: "updateCache",
         },
       ];
-      expect(mcenter.regist("test4", null, types)).toBe(4);
-      expect(mcenter.checkReady()).toBe(false);
+      expect(cia.regist("test4", null, types)).toBe(4);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("regist, duplicate error", async () => {
@@ -141,89 +141,89 @@ describe("MCenter", () => {
           type: "save",
         },
       ];
-      expect(() => mcenter.regist("test4", null, types)).toThrow("has been registed");
-      expect(mcenter.checkReady()).toBe(false);
+      expect(() => cia.regist("test4", null, types)).toThrow("has been registed");
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("publish, case1", async () => {
-      mcenter.publish("test", { name: "redstone" }, callbacks.test);
-      expect(mcenter.checkReady()).toBe(false);
+      cia.publish("test", { name: "redstone" }, callbacks.test);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("publish, case2", async () => {
-      mcenter.publish("test2", { name: "redstone1" }, callbacks.test2);
-      expect(mcenter.checkReady()).toBe(false);
+      cia.publish("test2", { name: "redstone1" }, callbacks.test2);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("publish, case3", async () => {
-      mcenter.publish("test3", { name: "redstone1" }, callbacks.test3);
-      expect(mcenter.checkReady()).toBe(false);
+      cia.publish("test3", { name: "redstone1" }, callbacks.test3);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("publish, case4", async () => {
-      mcenter.publish("test4", { name: "redstone1" }, callbacks.test4);
-      expect(mcenter.checkReady()).toBe(false);
+      cia.publish("test4", { name: "redstone1" }, callbacks.test4);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("publish, case5", async () => {
-      expect(() => mcenter.publish("test1", { name: "redstone1" }, callbacks.test3)).toThrow(
+      expect(() => cia.publish("test1", { name: "redstone1" }, callbacks.test3)).toThrow(
         "has not been registed",
       );
-      expect(mcenter.checkReady()).toBe(false);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("subscribe, case1", async () => {
-      mcenter.subscribe("test", "save", listeners.testSave);
-      expect(mcenter.checkReady()).toBe(false);
+      cia.subscribe("test", "save", listeners.testSave);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("subscribe, case2", async () => {
-      mcenter.subscribe("test2", "save", listeners.test2Save);
-      expect(mcenter.checkReady()).toBe(false);
+      cia.subscribe("test2", "save", listeners.test2Save);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("subscribe, case3", async () => {
-      mcenter.subscribe("test3", "save", listeners.test3Save);
-      expect(mcenter.checkReady()).toBe(false);
+      cia.subscribe("test3", "save", listeners.test3Save);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("subscribe, case4", async () => {
-      mcenter.subscribe("test4", "save", listeners.test4Save);
-      expect(mcenter.checkReady()).toBe(false);
+      cia.subscribe("test4", "save", listeners.test4Save);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("subscribe, faild case", async () => {
-      expect(() => mcenter.subscribe("test5", "save", listeners.test4Save)).toThrow(
+      expect(() => cia.subscribe("test5", "save", listeners.test4Save)).toThrow(
         "has not been registed",
       );
-      expect(mcenter.checkReady()).toBe(false);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("subscribe, faild case2", async () => {
-      expect(() => mcenter.subscribe("test4", "create", listeners.test4Save)).toThrow(
+      expect(() => cia.subscribe("test4", "create", listeners.test4Save)).toThrow(
         "subscribe type unknown",
       );
-      expect(mcenter.checkReady()).toBe(false);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("subscribe, faild case3", async () => {
-      expect(() => mcenter.subscribe("test4", "save", listeners.test4Save)).toThrow(
+      expect(() => cia.subscribe("test4", "save", listeners.test4Save)).toThrow(
         "subscribe type duplicate",
       );
-      expect(mcenter.checkReady()).toBe(false);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("subscribe, faild case4", async () => {
-      expect(() => mcenter.subscribe("test4", "save", listeners.test4noExists)).toThrow(
+      expect(() => cia.subscribe("test4", "save", listeners.test4noExists)).toThrow(
         "must be a function",
       );
-      expect(mcenter.checkReady()).toBe(false);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("subscribe, case5", async () => {
       // 这个 subscribe 之后, 前面publish的消息会被分发执行
-      mcenter.subscribe("test4", "updateCache", listeners.test4UpdateCache);
-      expect(mcenter.checkReady()).toBe(true);
+      cia.subscribe("test4", "updateCache", listeners.test4UpdateCache);
+      expect(cia.checkReady()).toBe(true);
       expect(listeners.testSave.mock.calls.length).toBe(0);
       expect(listeners.test2Save.mock.calls.length).toBe(0);
       expect(listeners.test3Save.mock.calls.length).toBe(0);
@@ -334,19 +334,19 @@ describe("MCenter", () => {
       })();
     });
 
-    it("registed failed when mcenter been ready", async () => {
-      expect(() => mcenter.regist("createEmployee", null, [{ type: "updateCache" }])).toThrow(
+    it("registed failed when cia been ready", async () => {
+      expect(() => cia.regist("createEmployee", null, [{ type: "updateCache" }])).toThrow(
         "dont registed",
       );
     });
 
     it("setFn faild", async () => {
-      expect(() => mcenter.setFn("test", console.log)).toThrow("unknown type: test");
+      expect(() => cia.setFn("test", console.log)).toThrow("unknown type: test");
     });
 
     it("dispatch exec listener function faild", async () => {
       listeners.testSave.mockRejectedValueOnce(Error("has error"));
-      mcenter.publish("test", { name: "happen error" });
+      cia.publish("test", { name: "happen error" });
       await sleep(10);
       expect(listeners.testSave.mock.calls.length).toBe(1);
       expect(listeners.testSave.mock.calls.pop()).toEqual([{ name: "happen error" }]);
@@ -361,8 +361,8 @@ describe("MCenter", () => {
     });
 
     it("publish, case6, callback exists but inst a function", async () => {
-      mcenter.publish("test", { name: "redstone1" }, "hello");
-      expect(mcenter.checkReady()).toBe(true);
+      cia.publish("test", { name: "redstone1" }, "hello");
+      expect(cia.checkReady()).toBe(true);
     });
   });
 });

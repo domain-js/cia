@@ -13,9 +13,9 @@ const sleep = (MS = 1000) =>
 
 describe("MCenter", () => {
   const cnf = {
-    mcenter: {
+    cia: {
       maxListeners: 2,
-      storeKey: "mcenter-store",
+      storeKey: "cia-store",
     },
   };
   const logger = {
@@ -79,7 +79,7 @@ describe("MCenter", () => {
       graceful,
       U: { tryCatchLog },
     };
-    const mcenter = MCenter(cnf, deps);
+    const cia = MCenter(cnf, deps);
 
     it("regist", async () => {
       const types = [
@@ -93,35 +93,35 @@ describe("MCenter", () => {
           timeout: 30,
         },
       ];
-      expect(mcenter.regist("test", publishValidators.test, types)).toBe(1);
-      expect(mcenter.checkReady()).toBe(false);
+      expect(cia.regist("test", publishValidators.test, types)).toBe(1);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("subscribe", async () => {
-      mcenter.subscribe("test", "save", listeners.testSave);
-      mcenter.subscribe("test", "cleanCache", listeners.testCleanCache);
-      expect(mcenter.checkReady()).toBe(true);
+      cia.subscribe("test", "save", listeners.testSave);
+      cia.subscribe("test", "cleanCache", listeners.testCleanCache);
+      expect(cia.checkReady()).toBe(true);
       await sleep(500);
     });
 
     it("mulit publish and graceful.exit", async () => {
       _.times(3, (index) => {
-        mcenter.publish("test", { name: "stonephp", index });
+        cia.publish("test", { name: "stonephp", index });
       });
 
       await sleep(500);
       expect(graceful.exit.mock.calls.length).toBe(1);
       const [exit] = graceful.exit.mock.calls.pop();
       exit();
-      expect(mcenter.isExited()).toBe(false);
-      expect(mcenter.isExiting()).toBe(true);
+      expect(cia.isExited()).toBe(false);
+      expect(cia.isExiting()).toBe(true);
       await sleep(1000);
-      expect(mcenter.isExited()).toBe(true);
-      expect(mcenter.isExiting()).toBe(false);
+      expect(cia.isExited()).toBe(true);
+      expect(cia.isExiting()).toBe(false);
 
       expect(redis.hset.mock.calls.length).toBe(1);
       const [redisKey, id, value] = redis.hset.mock.calls.pop();
-      expect(redisKey).toBe("mcenter-store");
+      expect(redisKey).toBe("cia-store");
       expect(id.length).toBe(36);
       expect(value).toBe(
         JSON.stringify({ id, name: "test", data: { name: "stonephp", index: 2 }, result: {} }),
@@ -146,14 +146,14 @@ describe("MCenter", () => {
       graceful,
       U: { tryCatchLog },
     };
-    const mcenter = MCenter(cnf, deps);
+    const cia = MCenter(cnf, deps);
 
     it("graceful.exit queue is empty", async () => {
       expect(graceful.exit.mock.calls.length).toBe(1);
       const [exit] = graceful.exit.mock.calls.pop();
       exit();
-      expect(mcenter.isExited()).toBe(true);
-      expect(mcenter.isExiting()).toBe(false);
+      expect(cia.isExited()).toBe(true);
+      expect(cia.isExiting()).toBe(false);
 
       expect(redis.hset.mock.calls.length).toBe(0);
     });

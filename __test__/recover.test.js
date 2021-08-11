@@ -13,7 +13,7 @@ const sleep = (MS = 1000) =>
 
 describe("MCenter", () => {
   const cnf = {
-    mcenter: {},
+    cia: {},
   };
   const logger = {
     info: jest.fn(),
@@ -57,7 +57,7 @@ describe("MCenter", () => {
       graceful,
       U: { tryCatchLog },
     };
-    const mcenter = MCenter(cnf, deps);
+    const cia = MCenter(cnf, deps);
     redis.hgetall.mockResolvedValueOnce({
       message_uuid: JSON.stringify({
         id: "message uuid",
@@ -88,14 +88,14 @@ describe("MCenter", () => {
           timeout: 30,
         },
       ];
-      expect(mcenter.regist("test", publishValidators.test, types)).toBe(1);
-      expect(mcenter.checkReady()).toBe(false);
+      expect(cia.regist("test", publishValidators.test, types)).toBe(1);
+      expect(cia.checkReady()).toBe(false);
     });
 
     it("subscribe", async () => {
-      mcenter.subscribe("test", "save", listeners.testSave);
-      mcenter.subscribe("test", "cleanCache", listeners.testCleanCache);
-      expect(mcenter.checkReady()).toBe(true);
+      cia.subscribe("test", "save", listeners.testSave);
+      cia.subscribe("test", "cleanCache", listeners.testCleanCache);
+      expect(cia.checkReady()).toBe(true);
       await sleep(500);
     });
 

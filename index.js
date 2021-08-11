@@ -10,10 +10,10 @@ function Main(cnf, deps) {
     U: { tryCatchLog },
   } = deps;
 
-  const { mcenter } = cnf;
+  const { cia } = cnf;
 
-  const maxListeners = Math.max(1, ((mcenter && mcenter.maxListeners) || 10) | 0);
-  const storeKey = (mcenter && mcenter.storeKey) || "mcenter";
+  const maxListeners = Math.max(1, ((cia && cia.maxListeners) || 10) | 0);
+  const storeKey = (cia && cia.storeKey) || "cia-store";
   const { async } = deps;
 
   const errors = Errors(cnf, deps);

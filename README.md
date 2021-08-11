@@ -1,17 +1,17 @@
-# @domain.js/mcenter
+# @domain.js/cia
 
-[![Build status](https://travis-ci.com/domain-js/mcenter.svg?branch=master)](https://travis-ci.org/domain-js/mcenter)
-[![codecov](https://codecov.io/gh/domain-js/mcenter/branch/master/graph/badge.svg)](https://codecov.io/gh/domain-js/mcenter)
+[![Build status](https://travis-ci.com/domain-js/cia.svg?branch=master)](https://travis-ci.org/domain-js/cia)
+[![codecov](https://codecov.io/gh/domain-js/cia/branch/master/graph/badge.svg)](https://codecov.io/gh/domain-js/cia)
 
 # Installation
-<pre>npm i @domain.js/mcenter --save</pre>
+<pre>npm i @domain.js/cia --save</pre>
 
 # cnf
-专属配置名称 `mcenter`
+专属配置名称 `cia`
 | 名称 | 类型 | 必填 | 默认值 | 描述 | 样例 |
 | ---- | ---- | ---- | ------ | ---- | ---- |
 | maxListeners | int | No | 10 | task exec concurrency | 10 |
-| storeKey | string | No | mcenter-store | redis storage hash key | mcenter-store |
+| storeKey | string | No | cia-store | redis storage hash key | cia-store |
 
 # deps
 | 模块名 | 别名 | 用到的方法 | 描述 |
@@ -35,7 +35,7 @@
   * `validator` function 可选，订阅函数返回值验证函数，校验失败直接抛出异常
 
 ```javascript
-mcenter.regist('eventName', publishValidatorFunction, [
+cia.regist('eventName', publishValidatorFunction, [
   {
     type: 'cleanCache', // 必填 订阅的名称
     timeout: 1000, // 可选 
@@ -50,7 +50,7 @@ mcenter.regist('eventName', publishValidatorFunction, [
 * `listener` function 必填 订阅函数
 
 ```javascript
-mcenter.subscribe('eventName', 'cleanCache', listener);
+cia.subscribe('eventName', 'cleanCache', listener);
 ```
 
 ## `publish`
