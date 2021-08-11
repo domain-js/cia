@@ -14,8 +14,8 @@ const sleep = (MS = 1000) =>
 describe("MCenter", () => {
   const cnf = {
     cia: {
-      maxListeners: 10,
-      hash: { key: "cia-store" },
+      concurrency: 10,
+      storeKey: "cia-store",
     },
   };
   const logger = {
@@ -34,7 +34,7 @@ describe("MCenter", () => {
     test4: jest.fn(),
   };
 
-  const listeners = {
+  const waiters = {
     testSave: jest.fn(async () => {
       await sleep(300);
       return { value: "testSave" };
@@ -57,14 +57,14 @@ describe("MCenter", () => {
     }),
   };
 
-  const publishValidators = {
+  const submitValidators = {
     test: jest.fn(),
     test2: jest.fn(),
     test3: jest.fn(),
     test4: jest.fn(),
   };
 
-  const listenerValidators = {
+  const waiterValidators = {
     test: jest.fn(),
   };
 
@@ -94,10 +94,10 @@ describe("MCenter", () => {
         {
           type: "save",
           timeout: 30,
-          validator: listenerValidators.test,
+          validator: waiterValidators.test,
         },
       ];
-      expect(cia.regist("test", publishValidators.test, types)).toBe(1);
+      expect(cia.regist("test", submitValidators.test, types)).toBe(1);
       expect(cia.checkReady()).toBe(false);
     });
 
@@ -108,7 +108,7 @@ describe("MCenter", () => {
           timeout: 20,
         },
       ];
-      expect(cia.regist("test2", publishValidators.test2, types)).toBe(2);
+      expect(cia.regist("test2", submitValidators.test2, types)).toBe(2);
       expect(cia.checkReady()).toBe(false);
     });
 
@@ -118,7 +118,7 @@ describe("MCenter", () => {
           type: "save",
         },
       ];
-      expect(cia.regist("test3", publishValidators.test3, types)).toBe(3);
+      expect(cia.regist("test3", submitValidators.test3, types)).toBe(3);
       expect(cia.checkReady()).toBe(false);
     });
 
@@ -145,129 +145,121 @@ describe("MCenter", () => {
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("publish, case1", async () => {
-      cia.publish("test", { name: "redstone" }, callbacks.test);
+    it("submit, case1", async () => {
+      cia.submit("test", { name: "redstone" }, callbacks.test);
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("publish, case2", async () => {
-      cia.publish("test2", { name: "redstone1" }, callbacks.test2);
+    it("submit, case2", async () => {
+      cia.submit("test2", { name: "redstone1" }, callbacks.test2);
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("publish, case3", async () => {
-      cia.publish("test3", { name: "redstone1" }, callbacks.test3);
+    it("submit, case3", async () => {
+      cia.submit("test3", { name: "redstone1" }, callbacks.test3);
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("publish, case4", async () => {
-      cia.publish("test4", { name: "redstone1" }, callbacks.test4);
+    it("submit, case4", async () => {
+      cia.submit("test4", { name: "redstone1" }, callbacks.test4);
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("publish, case5", async () => {
-      expect(() => cia.publish("test1", { name: "redstone1" }, callbacks.test3)).toThrow(
+    it("submit, case5", async () => {
+      expect(() => cia.submit("test1", { name: "redstone1" }, callbacks.test3)).toThrow(
         "has not been registed",
       );
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("subscribe, case1", async () => {
-      cia.subscribe("test", "save", listeners.testSave);
+    it("link, case1", async () => {
+      cia.link("test", "save", waiters.testSave);
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("subscribe, case2", async () => {
-      cia.subscribe("test2", "save", listeners.test2Save);
+    it("link, case2", async () => {
+      cia.link("test2", "save", waiters.test2Save);
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("subscribe, case3", async () => {
-      cia.subscribe("test3", "save", listeners.test3Save);
+    it("link, case3", async () => {
+      cia.link("test3", "save", waiters.test3Save);
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("subscribe, case4", async () => {
-      cia.subscribe("test4", "save", listeners.test4Save);
+    it("link, case4", async () => {
+      cia.link("test4", "save", waiters.test4Save);
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("subscribe, faild case", async () => {
-      expect(() => cia.subscribe("test5", "save", listeners.test4Save)).toThrow(
-        "has not been registed",
-      );
+    it("link, faild case", async () => {
+      expect(() => cia.link("test5", "save", waiters.test4Save)).toThrow("has not been registed");
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("subscribe, faild case2", async () => {
-      expect(() => cia.subscribe("test4", "create", listeners.test4Save)).toThrow(
-        "subscribe type unknown",
-      );
+    it("link, faild case2", async () => {
+      expect(() => cia.link("test4", "create", waiters.test4Save)).toThrow("link type unknown");
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("subscribe, faild case3", async () => {
-      expect(() => cia.subscribe("test4", "save", listeners.test4Save)).toThrow(
-        "subscribe type duplicate",
-      );
+    it("link, faild case3", async () => {
+      expect(() => cia.link("test4", "save", waiters.test4Save)).toThrow("link type duplicate");
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("subscribe, faild case4", async () => {
-      expect(() => cia.subscribe("test4", "save", listeners.test4noExists)).toThrow(
-        "must be a function",
-      );
+    it("link, faild case4", async () => {
+      expect(() => cia.link("test4", "save", waiters.test4noExists)).toThrow("must be a function");
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("subscribe, case5", async () => {
-      // 这个 subscribe 之后, 前面publish的消息会被分发执行
-      cia.subscribe("test4", "updateCache", listeners.test4UpdateCache);
+    it("link, case5", async () => {
+      // 这个 link 之后, 前面submit的消息会被分发执行
+      cia.link("test4", "updateCache", waiters.test4UpdateCache);
       expect(cia.checkReady()).toBe(true);
-      expect(listeners.testSave.mock.calls.length).toBe(0);
-      expect(listeners.test2Save.mock.calls.length).toBe(0);
-      expect(listeners.test3Save.mock.calls.length).toBe(0);
-      expect(listeners.test4Save.mock.calls.length).toBe(0);
-      expect(listeners.test4UpdateCache.mock.calls.length).toBe(0);
+      expect(waiters.testSave.mock.calls.length).toBe(0);
+      expect(waiters.test2Save.mock.calls.length).toBe(0);
+      expect(waiters.test3Save.mock.calls.length).toBe(0);
+      expect(waiters.test4Save.mock.calls.length).toBe(0);
+      expect(waiters.test4UpdateCache.mock.calls.length).toBe(0);
       await sleep(700);
     });
 
     // 验证订阅的函数是否正确执行
-    it("dispatch exec assert, subscribe listener check", async () => {
-      expect(listeners.testSave.mock.calls.length).toBe(1);
-      expect(listeners.testSave.mock.calls.pop()).toEqual([{ name: "redstone" }]);
-      expect(listeners.test2Save.mock.calls.length).toBe(1);
-      expect(listeners.test2Save.mock.calls.pop()).toEqual([{ name: "redstone1" }]);
-      expect(listeners.test3Save.mock.calls.length).toBe(1);
-      expect(listeners.test3Save.mock.calls.pop()).toEqual([{ name: "redstone1" }]);
-      expect(listeners.test4Save.mock.calls.length).toBe(1);
-      expect(listeners.test4Save.mock.calls.pop()).toEqual([{ name: "redstone1" }]);
-      expect(listeners.test4UpdateCache.mock.calls.length).toBe(1);
-      expect(listeners.test4UpdateCache.mock.calls.pop()).toEqual([{ name: "redstone1" }]);
+    it("dispatch exec assert, link waiter check", async () => {
+      expect(waiters.testSave.mock.calls.length).toBe(1);
+      expect(waiters.testSave.mock.calls.pop()).toEqual([{ name: "redstone" }]);
+      expect(waiters.test2Save.mock.calls.length).toBe(1);
+      expect(waiters.test2Save.mock.calls.pop()).toEqual([{ name: "redstone1" }]);
+      expect(waiters.test3Save.mock.calls.length).toBe(1);
+      expect(waiters.test3Save.mock.calls.pop()).toEqual([{ name: "redstone1" }]);
+      expect(waiters.test4Save.mock.calls.length).toBe(1);
+      expect(waiters.test4Save.mock.calls.pop()).toEqual([{ name: "redstone1" }]);
+      expect(waiters.test4UpdateCache.mock.calls.length).toBe(1);
+      expect(waiters.test4UpdateCache.mock.calls.pop()).toEqual([{ name: "redstone1" }]);
     });
 
-    // 验证 publishValidators 是否正确执行
-    it("dispatch exec assert, publish validator", async () => {
-      expect(publishValidators.test.mock.calls.length).toBe(1);
-      expect(publishValidators.test.mock.calls.pop()).toEqual([{ name: "redstone" }]);
+    // 验证 submitValidators 是否正确执行
+    it("dispatch exec assert, submit validator", async () => {
+      expect(submitValidators.test.mock.calls.length).toBe(1);
+      expect(submitValidators.test.mock.calls.pop()).toEqual([{ name: "redstone" }]);
 
-      expect(publishValidators.test2.mock.calls.length).toBe(1);
-      expect(publishValidators.test2.mock.calls.pop()).toEqual([{ name: "redstone1" }]);
+      expect(submitValidators.test2.mock.calls.length).toBe(1);
+      expect(submitValidators.test2.mock.calls.pop()).toEqual([{ name: "redstone1" }]);
 
-      expect(publishValidators.test3.mock.calls.length).toBe(1);
-      expect(publishValidators.test3.mock.calls.pop()).toEqual([{ name: "redstone1" }]);
+      expect(submitValidators.test3.mock.calls.length).toBe(1);
+      expect(submitValidators.test3.mock.calls.pop()).toEqual([{ name: "redstone1" }]);
 
-      expect(publishValidators.test4.mock.calls.length).toBe(0);
+      expect(submitValidators.test4.mock.calls.length).toBe(0);
     });
 
-    // 验证 listenerValidators 是否正确执行
-    it("dispatch exec assert, publish validator", async () => {
-      expect(listenerValidators.test.mock.calls.length).toBe(1);
-      expect(listenerValidators.test.mock.calls.pop()).toEqual([{ value: "testSave" }]);
+    // 验证 waiterValidators 是否正确执行
+    it("dispatch exec assert, submit validator", async () => {
+      expect(waiterValidators.test.mock.calls.length).toBe(1);
+      expect(waiterValidators.test.mock.calls.pop()).toEqual([{ value: "testSave" }]);
     });
 
-    // 验证publish的回调是否正常执行
-    it("dispatch exec assert, publish callback check", async () => {
+    // 验证submit的回调是否正常执行
+    it("dispatch exec assert, submit callback check", async () => {
       (() => {
         expect(callbacks.test.mock.calls.length).toBe(1);
         const {
@@ -344,12 +336,12 @@ describe("MCenter", () => {
       expect(() => cia.setFn("test", console.log)).toThrow("unknown type: test");
     });
 
-    it("dispatch exec listener function faild", async () => {
-      listeners.testSave.mockRejectedValueOnce(Error("has error"));
-      cia.publish("test", { name: "happen error" });
+    it("dispatch exec waiter function faild", async () => {
+      waiters.testSave.mockRejectedValueOnce(Error("has error"));
+      cia.submit("test", { name: "happen error" });
       await sleep(10);
-      expect(listeners.testSave.mock.calls.length).toBe(1);
-      expect(listeners.testSave.mock.calls.pop()).toEqual([{ name: "happen error" }]);
+      expect(waiters.testSave.mock.calls.length).toBe(1);
+      expect(waiters.testSave.mock.calls.pop()).toEqual([{ name: "happen error" }]);
 
       expect(errorFn.mock.calls.length).toBe(1);
       const [err, id, name, type, data] = errorFn.mock.calls.pop();
@@ -360,8 +352,8 @@ describe("MCenter", () => {
       expect(data).toEqual({ name: "happen error" });
     });
 
-    it("publish, case6, callback exists but inst a function", async () => {
-      cia.publish("test", { name: "redstone1" }, "hello");
+    it("submit, case6, callback exists but inst a function", async () => {
+      cia.submit("test", { name: "redstone1" }, "hello");
       expect(cia.checkReady()).toBe(true);
     });
   });

@@ -14,7 +14,7 @@ const sleep = (MS = 1000) =>
 describe("MCenter", () => {
   const cnf = {
     cia: {
-      maxListeners: 2,
+      concurrency: 2,
       storeKey: "cia-store",
     },
   };
@@ -24,7 +24,7 @@ describe("MCenter", () => {
   };
   const tryCatchLog = jest.fn((fn) => fn);
 
-  const listeners = {
+  const waiters = {
     testSave: jest.fn(async () => {
       await sleep(300);
       return { value: "testSave" };
@@ -51,14 +51,14 @@ describe("MCenter", () => {
     }),
   };
 
-  const publishValidators = {
+  const submitValidators = {
     test: jest.fn(),
     test2: jest.fn(),
     test3: jest.fn(),
     test4: jest.fn(),
   };
 
-  const listenerValidators = {
+  const waiterValidators = {
     test: jest.fn(),
   };
 
@@ -86,27 +86,27 @@ describe("MCenter", () => {
         {
           type: "save",
           timeout: 30,
-          validator: listenerValidators.test,
+          validator: waiterValidators.test,
         },
         {
           type: "cleanCache",
           timeout: 30,
         },
       ];
-      expect(cia.regist("test", publishValidators.test, types)).toBe(1);
+      expect(cia.regist("test", submitValidators.test, types)).toBe(1);
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("subscribe", async () => {
-      cia.subscribe("test", "save", listeners.testSave);
-      cia.subscribe("test", "cleanCache", listeners.testCleanCache);
+    it("link", async () => {
+      cia.link("test", "save", waiters.testSave);
+      cia.link("test", "cleanCache", waiters.testCleanCache);
       expect(cia.checkReady()).toBe(true);
       await sleep(500);
     });
 
-    it("mulit publish and graceful.exit", async () => {
+    it("mulit submit and graceful.exit", async () => {
       _.times(3, (index) => {
-        cia.publish("test", { name: "stonephp", index });
+        cia.submit("test", { name: "stonephp", index });
       });
 
       await sleep(500);

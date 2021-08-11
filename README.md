@@ -35,7 +35,7 @@
   * `validator` function 可选，订阅函数返回值验证函数，校验失败直接抛出异常
 
 ```javascript
-cia.regist('eventName', publishValidatorFunction, [
+cia.regist('eventName', submitValidatorFunction, [
   {
     type: 'cleanCache', // 必填 订阅的名称
     timeout: 1000, // 可选 
@@ -43,18 +43,18 @@ cia.regist('eventName', publishValidatorFunction, [
 ]);
 ```
 
-## `subscribe`
-订阅消息, 当有订阅的消息是会把消息内容传递给监听函数
+## `link`
+连接cia系统，通过waiter来接收对应的消息
 * `eventName` string 必填 消息名称
-* `type` string 必填 订阅者类型，要和 regist types里的type匹配
-* `listener` function 必填 订阅函数
+* `type` string 必填 接待者类型，要和 regist types里的type匹配
+* `waiter` function 必填 订阅函数
 
 ```javascript
-cia.subscribe('eventName', 'cleanCache', listener);
+cia.link('eventName', 'cleanCache', waiter);
 ```
 
-## `publish`
-消息发布函数，当有消息产生的时候通过改函数发布上去
+## `submit`
+提交函数，当有消息产生的时候通过改函数提交上去
 * `eventName` string 必填 消息名称
 * `data` any 必填 消息体数据
 

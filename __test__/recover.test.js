@@ -24,7 +24,7 @@ describe("MCenter", () => {
   };
   const tryCatchLog = jest.fn((fn) => fn);
 
-  const listeners = {
+  const waiters = {
     testSave: jest.fn(async () => {
       await sleep(300);
       return { value: "testSave" };
@@ -35,11 +35,11 @@ describe("MCenter", () => {
     }),
   };
 
-  const publishValidators = {
+  const submitValidators = {
     test: jest.fn(),
   };
 
-  const listenerValidators = {
+  const waiterValidators = {
     test: jest.fn(),
   };
 
@@ -81,29 +81,29 @@ describe("MCenter", () => {
         {
           type: "save",
           timeout: 30,
-          validator: listenerValidators.test,
+          validator: waiterValidators.test,
         },
         {
           type: "cleanCache",
           timeout: 30,
         },
       ];
-      expect(cia.regist("test", publishValidators.test, types)).toBe(1);
+      expect(cia.regist("test", submitValidators.test, types)).toBe(1);
       expect(cia.checkReady()).toBe(false);
     });
 
-    it("subscribe", async () => {
-      cia.subscribe("test", "save", listeners.testSave);
-      cia.subscribe("test", "cleanCache", listeners.testCleanCache);
+    it("link", async () => {
+      cia.link("test", "save", waiters.testSave);
+      cia.link("test", "cleanCache", waiters.testCleanCache);
       expect(cia.checkReady()).toBe(true);
       await sleep(500);
     });
 
     it("recover check", async () => {
-      expect(listeners.testCleanCache.mock.calls.length).toBe(1);
-      expect(listeners.testCleanCache.mock.calls.pop()).toEqual([{ name: "recover message" }]);
+      expect(waiters.testCleanCache.mock.calls.length).toBe(1);
+      expect(waiters.testCleanCache.mock.calls.pop()).toEqual([{ name: "recover message" }]);
 
-      expect(listeners.testSave.mock.calls.length).toBe(0);
+      expect(waiters.testSave.mock.calls.length).toBe(0);
 
       expect(logger.error.mock.calls.length).toBe(1);
     });

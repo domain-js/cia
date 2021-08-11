@@ -6,25 +6,25 @@ module.exports = () =>
     registWhenReadyAfter(name) {
       return Error(`The message dont registed when mcenter be ready after: ${name}`);
     },
-    publishUnregistedMessage(name) {
-      return Error(`The message has not been registed: ${name}, when will publish`);
+    submitUnregistedMessage(name) {
+      return Error(`The message has not been registed: ${name}, when will submit`);
     },
-    subscribeUnregistedMessage(name) {
-      return Error(`The message has not been registed: ${name}, when will subscribe`);
+    linkUnregistedMessage(name) {
+      return Error(`The message has not been registed: ${name}, when will link`);
     },
-    subscribeUnknowTypes(name, type) {
+    linkUnknowTypes(name, type) {
       return Error(
-        `The message subscribe type unknown, message name is: ${name}, type is: ${type}, when will subscribe`,
+        `The message link type unknown, message name is: ${name}, type is: ${type}, when will link`,
       );
     },
-    subscribeDuplicateType(name, type) {
+    linkDuplicateType(name, type) {
       return Error(
-        `The message subscribe type duplicate, message name is: ${name}, type is: ${type}, when will subscribe`,
+        `The message link type duplicate, message name is: ${name}, type is: ${type}, when will link`,
       );
     },
-    subscribeListernerMustBeFunctionType(name, type) {
+    linkListernerMustBeFunctionType(name, type) {
       return Error(
-        `The message subscribe listener must be a function, message name is: ${name}, type is: ${type}, when will subscribe`,
+        `The message link waiter must be a function, message name is: ${name}, type is: ${type}, when will link`,
       );
     },
     setFnNotAllowed(type) {
