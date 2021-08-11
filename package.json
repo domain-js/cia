@@ -1,5 +1,5 @@
 {
-  "name": "@domain.js/mcenter",
+  "name": "@domain.js/cia",
   "version": "0.1.0",
   "description": "domain.js center 消息任务通用模块",
   "main": "index.js",
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/domain-js/mcenter/.git"
+    "url": "git+ssh://git@github.com/domain-js/cia/.git"
   },
   "keywords": [
     "message",
@@ -21,9 +21,9 @@
   "author": "Redstone Zhao",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/domain-js/mcenter/issues"
+    "url": "https://github.com/domain-js/cia/issues"
   },
-  "homepage": "https://github.com/domain-js/mcenter#readme",
+  "homepage": "https://github.com/domain-js/cia#readme",
   "devDependencies": {
     "async": "^3.2.1",
     "lodash": "^4.17.21",
