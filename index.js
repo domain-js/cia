@@ -76,7 +76,7 @@ function Main(cnf, deps) {
       result[type] = [err, ret, consumedMS];
 
       // 记录执行结果
-      logger.info(`MCenter.dispatch\t${id}\t${type}`, result[type]);
+      logger.info(`cia.dispatch\t${id}\t${type}`, result[type]);
     });
     doingCount -= 1;
 
@@ -196,7 +196,7 @@ function Main(cnf, deps) {
     if (validator) validator(data);
     const id = uuid();
     queue.push({ id, name, data, callback });
-    logger.info(`MCenter.submit\t${id}`, { name, data });
+    logger.info(`cia.submit\t${id}`, { name, data });
   };
 
   // 设置通知函数，错误通知，超时通知
@@ -220,6 +220,6 @@ function Main(cnf, deps) {
   return { isExiting, isExited, regist, checkReady, link, submit, setFn };
 }
 
-Main.Deps = ["_", "async", "logger", "utils", "redis", "graceful"];
+Main.Deps = ["_", "async", "logger", "utils", "redis"];
 
 module.exports = Main;
