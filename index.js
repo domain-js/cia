@@ -220,6 +220,6 @@ function Main(cnf, deps) {
   return { isExiting, isExited, regist, checkReady, link, submit, setFn };
 }
 
-Main.Deps = ["_", "async", "logger", "utils", "redis"];
+Main.Deps = ["_", "async", "logger", "utils", "redis", "graceful"];
 
 module.exports = Main;
