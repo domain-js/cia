@@ -43,7 +43,7 @@ function Main(cnf, deps) {
   };
 
   // 记录监听回调函数
-  // { [${name}::${type}]: { [type]: fn } }
+  // { [${name}::${type}]: fn }
   const waiters = new Map();
 
   // 消息分发函数，分发到对应的订阅函数上
@@ -217,7 +217,7 @@ function Main(cnf, deps) {
   // 进程是否已经退出
   const isExited = () => Boolean(exited);
 
-  return { isExiting, isExited, regist, checkReady, link, submit, setFn };
+  return { isExiting, isExited, checkReady, regist, link, submit, setFn };
 }
 
 Main.Deps = ["_", "async", "logger", "utils", "redis", "graceful"];
