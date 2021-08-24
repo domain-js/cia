@@ -71,3 +71,6 @@ cia.link('eventName', 'cleanCache', waiter);
 
 ## `isExited`
 获取系统是否已退出，返回 `true` 或 `false`
+
+## `getUnlinks`
+获取未被 link 的消息任务, 排查问题的时候需要用到

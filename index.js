@@ -43,7 +43,7 @@ function Main(cnf, deps) {
   };
 
   // 记录监听回调函数
-  // { [${name}::${type}]: fn }
+  // { [${name}::${type}]: { [type]: fn } }
   const waiters = new Map();
 
   // 消息分发函数，分发到对应的订阅函数上
@@ -211,13 +211,26 @@ function Main(cnf, deps) {
     fns[type] = tryCatchLog(fn, logger.error);
   };
 
+  // 获取未被连接的任务消息
+  const getUnlinks = () => {
+    const losts = [];
+    for (const name of Object.keys(registed)) {
+      for (const { type } of registed[name].types) {
+        const key = `${name}::${type}`;
+        if (!waiters.has(key)) losts.push(key);
+      }
+    }
+
+    return losts;
+  };
+
   // 进程是否正在退出
   const isExiting = () => Boolean(exiting);
 
   // 进程是否已经退出
   const isExited = () => Boolean(exited);
 
-  return { isExiting, isExited, checkReady, regist, link, submit, setFn };
+  return { isExiting, isExited, regist, checkReady, getUnlinks, link, submit, setFn };
 }
 
 Main.Deps = ["_", "async", "logger", "utils", "redis", "graceful"];

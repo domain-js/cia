@@ -99,6 +99,8 @@ describe("MCenter", () => {
       ];
       expect(cia.regist("test", submitValidators.test, types)).toBe(1);
       expect(cia.checkReady()).toBe(false);
+
+      expect(cia.getUnlinks()).toEqual(["test::save"]);
     });
 
     it("regist, case2", async () => {
