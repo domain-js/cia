@@ -168,9 +168,13 @@ describe("MCenter", () => {
     });
 
     it("submit, case5", async () => {
-      expect(() => cia.submit("test1", { name: "redstone1" }, callbacks.test3)).toThrow(
-        "has not been registed",
-      );
+      expect(cia.submit("test1", { name: "redstone1" }, callbacks.test3)).toBe(undefined);
+      expect(logger.error.mock.calls.length).toBe(1);
+      expect(logger.error.mock.calls.pop()).toEqual([
+        Error(
+          "The message has not been registed: test1, data: { name: 'redstone1' }, when will submit",
+        ),
+      ]);
       expect(cia.checkReady()).toBe(false);
     });
 
@@ -357,6 +361,41 @@ describe("MCenter", () => {
     it("submit, case6, callback exists but inst a function", async () => {
       cia.submit("test", { name: "redstone1" }, "hello");
       expect(cia.checkReady()).toBe(true);
+      expect(cia.getUnlinks()).toEqual([]);
+
+      expect(cia.getStats()).toEqual({
+        test: {
+          pendings: 1,
+          doings: 0,
+          dones: 1,
+          errors: 1,
+          _types: [{ type: "save", pendings: 1, doings: 0, dones: 1, errors: 1 }],
+        },
+        test2: {
+          pendings: 0,
+          doings: 0,
+          dones: 1,
+          errors: 0,
+          _types: [{ type: "save", pendings: 0, doings: 0, dones: 1, errors: 0 }],
+        },
+        test3: {
+          pendings: 0,
+          doings: 0,
+          dones: 1,
+          errors: 0,
+          _types: [{ type: "save", pendings: 0, doings: 0, dones: 1, errors: 0 }],
+        },
+        test4: {
+          pendings: 0,
+          doings: 0,
+          dones: 1,
+          errors: 0,
+          _types: [
+            { type: "save", pendings: 0, doings: 0, dones: 1, errors: 0 },
+            { type: "updateCache", pendings: 0, doings: 0, dones: 1, errors: 0 },
+          ],
+        },
+      });
     });
   });
 });
