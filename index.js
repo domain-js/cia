@@ -39,6 +39,16 @@ function Main(cnf, deps) {
   // { [${name}::${type}]: { [type]: fn } }
   const waiters = new Map();
 
+  // 更新等待数量
+  const updatePendings = (registed) => {
+    const { result = {}, types } = registed;
+    const withouts = new Set(Object.keys(result));
+    registed.pendings += 1;
+    types.forEach((x) => {
+      if (!withouts.has(x.type)) x.pendings += 1;
+    });
+  };
+
   // 更新 doings 统计信息
   const updateDoings = (item) => {
     item.pendings -= 1;
@@ -171,7 +181,11 @@ function Main(cnf, deps) {
       const ok = await redis.hdel(storeKey, id);
       if (ok !== 1) continue;
       try {
-        queue.push(JSON.parse(item));
+        const data = JSON.parse(item);
+        const { name } = data;
+        queue.push(data);
+        updatePendings(registeds[name]);
+        logger.info("cia-recover: %s", item);
       } catch (e) {
         logger.error(e);
       }
@@ -248,14 +262,11 @@ function Main(cnf, deps) {
       return;
     }
     if (callback && !_.isFunction(callback)) callback = undefined;
-    const { validator, types } = registeds[name];
+    const { validator } = registeds[name];
     if (validator) validator(data);
     const id = uuid();
     queue.push({ id, name, data, callback });
-    registeds[name].pendings += 1;
-    types.forEach((x) => {
-      x.pendings += 1;
-    });
+    updatePendings(registeds[name]);
     logger.info(`cia.submit\t${id}`, { name, data });
   };
 
