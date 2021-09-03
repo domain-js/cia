@@ -168,8 +168,6 @@ function Main(cnf, deps) {
         readyToExitFn = resolve;
       }
     });
-
-    logger.info("System exiting cia stats: %s", JSON.stringify(getStats()));
   });
 
   // 恢复上次残留的消息订阅执行
