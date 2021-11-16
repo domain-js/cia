@@ -1,6 +1,6 @@
-const util = require("util");
+import * as util from "util";
 
-module.exports = () => {
+export default () => {
   const defines = [
     ["duplicatRegistMessage", "The message has been registed: %s"],
     ["registWhenReadyAfter", "The message dont registed when mcenter be ready after: %s"],
@@ -24,10 +24,14 @@ module.exports = () => {
     ["setFnNotAllowed", "Set function but unknown type: %s"],
   ];
 
-  const fns = {};
+  type Err = Error & { code?: string };
+  type ErrFn = (...args: any[]) => Err;
+
+  const fns: { [key: string]: ErrFn } = {};
+
   for (const [code, message] of defines) {
-    fns[code] = (...args) => {
-      const error = Error(util.format(message, ...args));
+    fns[code] = (...args: any[]) => {
+      const error: Err = Error(util.format(message, ...args));
       error.code = code;
 
       return error;

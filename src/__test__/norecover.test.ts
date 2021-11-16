@@ -1,6 +1,4 @@
-const _ = require("lodash");
-const async = require("async");
-const MCenter = require("..");
+import { Main as Cia } from "..";
 
 process.on("uncaughtException", console.error);
 process.on("unhandledRejection", console.error);
@@ -11,7 +9,7 @@ const sleep = (MS = 1000) =>
     setTimeout(resolve, MS);
   });
 
-describe("MCenter", () => {
+describe("Cia", () => {
   const cnf = {
     cia: {
       concurrency: 10,
@@ -78,14 +76,12 @@ describe("MCenter", () => {
       hgetall: jest.fn(),
     };
     const deps = {
-      _,
-      async,
       logger,
       redis,
       graceful,
       U: { tryCatchLog },
     };
-    const cia = MCenter(cnf, deps);
+    const cia = Cia(cnf, deps);
     cia.setFn("timeout", timeoutFn);
     cia.setFn("error", errorFn);
 
@@ -133,7 +129,7 @@ describe("MCenter", () => {
           type: "updateCache",
         },
       ];
-      expect(cia.regist("test4", null, types)).toBe(4);
+      expect(cia.regist("test4", undefined, types)).toBe(4);
       expect(cia.checkReady()).toBe(false);
     });
 
@@ -143,7 +139,7 @@ describe("MCenter", () => {
           type: "save",
         },
       ];
-      expect(() => cia.regist("test4", null, types)).toThrow("has been registed");
+      expect(() => cia.regist("test4", undefined, types)).toThrow("has been registed");
       expect(cia.checkReady()).toBe(false);
     });
 
@@ -214,7 +210,7 @@ describe("MCenter", () => {
     });
 
     it("link, faild case4", async () => {
-      expect(() => cia.link("test4", "save", waiters.test4noExists)).toThrow("must be a function");
+      expect(() => cia.link("test4", "save", undefined as unknown as Function)).toThrow("must be a function");
       expect(cia.checkReady()).toBe(false);
     });
 
@@ -333,13 +329,13 @@ describe("MCenter", () => {
     });
 
     it("registed failed when cia been ready", async () => {
-      expect(() => cia.regist("createEmployee", null, [{ type: "updateCache" }])).toThrow(
+      expect(() => cia.regist("createEmployee", undefined, [{ type: "updateCache" }])).toThrow(
         "dont registed",
       );
     });
 
     it("setFn faild", async () => {
-      expect(() => cia.setFn("test", console.log)).toThrow("unknown type: test");
+      expect(() => cia.setFn("test" as unknown as 'error', console.log)).toThrow("unknown type: test");
     });
 
     it("dispatch exec waiter function faild", async () => {
@@ -359,7 +355,7 @@ describe("MCenter", () => {
     });
 
     it("submit, case6, callback exists but inst a function", async () => {
-      cia.submit("test", { name: "redstone1" }, "hello");
+      cia.submit("test", { name: "redstone1" }, "hello" as unknown as Function);
       expect(cia.checkReady()).toBe(true);
       expect(cia.getUnlinks()).toEqual([]);
 

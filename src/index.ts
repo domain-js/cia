@@ -1,9 +1,77 @@
-const uuid = require("uuid").v4;
-const Errors = require("./errors");
+import * as _ from "lodash";
+import * as async from "async";
+import { v4 as uuid } from "uuid";
+import Errors from "./errors";
 
-function Main(cnf, deps) {
+interface Cnf {
+  cia?: {
+    concurrency?: number;
+    storeKey?: string;
+  };
+}
+
+interface Deps {
+  logger: {
+    info: (...args: any[]) => void;
+    error: (...args: any[]) => void;
+  };
+  redis: {
+    hset: Function;
+    hdel: Function;
+    hgetall: Function;
+  },
+  graceful: {
+    exit: (fn: () => Promise<void>) => void;
+  };
+  U: {
+    tryCatchLog<Fn extends (...args: any[]) => any>(fn: Fn, errorFn: (...args: any[]) => any): Fn;
+  };
+}
+
+/* 统计相关属性 */
+interface Stats {
+  pendings: number;
+  doings: number;
+  errors: number;
+  dones: number;
+}
+
+/* 任务执行注册进来的 work 的类型 */
+type Type = {
+  type: string;
+  timeout?: number;
+  validator?: Function;
+};
+
+/* 进入注册表的任务 work 类型数据，补充了统计属性 */
+type AType = Type & Stats;
+
+/* 任务的注册信息 */
+type Registed = {
+  validator?: Function;
+  types: AType[];
+  typeNames: Set<string>;
+  result?: {
+    [type: string]: [Error | null, any, number];
+  };
+} & Stats;
+
+interface Registeds {
+  [name: string]: Registed;
+}
+
+interface Message {
+  id: string;
+  name: string;
+  data: any;
+  callback?: (...args: any[]) => void;
+  result?: {
+    [type: string]: [Error | null, any, number];
+  };
+}
+
+export function Main(cnf: Cnf, deps: Deps) {
   const {
-    _,
     logger,
     redis,
     graceful,
@@ -14,20 +82,17 @@ function Main(cnf, deps) {
 
   const concurrency = Math.max(1, ((cia && cia.concurrency) || 10) | 0);
   const storeKey = (cia && cia.storeKey) || "cia-store";
-  const { async } = deps;
 
-  const errors = Errors(cnf, deps);
+  const errors = Errors();
 
   let doingCount = 0; // 正在执行的消息数量
   let exited = false; // 是否已经完成退出
   let exiting = false; // 是否正在退出
-  let readyToExitFn = null; // 完成退出前准备后执行函数
+  let readyToExitFn: Function; // 完成退出前准备后执行函数
   let unlinkdCount = 0; // 未被订阅的数量, 基于 {name}::{type} 判断
   let isReady = false; // 系统是否已准备妥当
 
-  // 记录已注册的消息
-  // { [name]: { validator, types, dones, errors, doings } };
-  const registeds = {};
+  const registeds: Registeds = {};
 
   // 默认通知函数
   const fns = {
@@ -40,7 +105,7 @@ function Main(cnf, deps) {
   const waiters = new Map();
 
   // 更新等待数量
-  const updatePendings = (registed) => {
+  const updatePendings = (registed: Registed) => {
     const { result = {}, types } = registed;
     const withouts = new Set(Object.keys(result));
     registed.pendings += 1;
@@ -50,25 +115,25 @@ function Main(cnf, deps) {
   };
 
   // 更新 doings 统计信息
-  const updateDoings = (item) => {
+  const updateDoings = (item: Stats) => {
     item.pendings -= 1;
     item.doings += 1;
   };
 
   // 更新 errors 统计信息
-  const updateErrors = (item) => {
+  const updateErrors = (item: Stats) => {
     item.doings -= 1;
     item.errors += 1;
   };
 
   // 更新 dones 统计信息
-  const updateDones = (item) => {
+  const updateDones = (item: Stats) => {
     item.doings -= 1;
     item.dones += 1;
   };
 
   // 消息分发函数，分发到对应的订阅函数上
-  const dispatch = async (item) => {
+  const dispatch = async (item: Message) => {
     const { id, name, data, result = {}, callback } = item;
 
     const registed = registeds[name];
@@ -88,7 +153,7 @@ function Main(cnf, deps) {
 
       const fn = waiters.get(`${name}::${type}`);
       const startAt = Date.now();
-      let err = null;
+      let err: Error | null = null;
       let ret = null;
       try {
         updateDoings(_type);
@@ -99,7 +164,7 @@ function Main(cnf, deps) {
         updateErrors(_type);
         fns.error(e, id, name, type, data);
         errorCount += 1;
-        err = e;
+        err = e as Error;
       }
       const consumedMS = Date.now() - startAt;
       if (timeout && timeout < consumedMS) fns.timeout(consumedMS, id, name, type);
@@ -138,11 +203,13 @@ function Main(cnf, deps) {
   const statsFields = Object.freeze(["pendings", "doings", "dones", "errors"]);
   // 获取统计信息
   const getStats = () => {
-    const stats = {};
+    const stats: { [name: string]: Stats & { _types: ({ type: string } & Stats)[] } } = {};
     for (const name of Object.keys(registeds)) {
       const { types } = registeds[name];
-      stats[name] = _.pick(registeds[name], statsFields);
-      stats[name]._types = types.map((x) => _.pick(x, "type", ...statsFields));
+      stats[name] = {
+        ...(_.pick(registeds[name], statsFields) as Stats),
+        _types: types.map((x) => _.pick(x, "type", ...statsFields) as Stats & { type: string }),
+      };
     }
 
     return stats;
@@ -158,7 +225,7 @@ function Main(cnf, deps) {
   graceful.exit(async () => {
     exiting = true;
 
-    await new Promise((resolve) => {
+    await new Promise((resolve: Function) => {
       // 如果队列已经清空，且没有正在执行的消息，则直接退出
       if (!queue.length() && !doingCount) {
         exited = true;
@@ -200,14 +267,22 @@ function Main(cnf, deps) {
   //    timeout?: 100, // 执行超时限定, 单位毫秒，可选 默认为 0, 不限制
   //    validator?: fn, // 返回值格式验证函数, 可选
   // }]
-  const regist = (name, validator, types) => {
+  const regist = (name: string, validator: Function | undefined, types: Type[]) => {
     if (isReady) throw errors.registWhenReadyAfter(name);
     if (registeds[name]) throw errors.duplicatRegistMessage(name);
     const typeNames = new Set(_.map(types, "type"));
     types.forEach((x) => {
-      Object.assign(x, { pendings: 0, dones: 0, doings: 0, errors: 0 });
+      Object.assign(x, { pendings: 0, dones: 0, doings: 0, errors: 0 }) as AType;
     });
-    const item = { validator, types, typeNames, pendings: 0, dones: 0, doings: 0, errors: 0 };
+    const item: Registed = {
+      validator,
+      types: types as AType[],
+      typeNames,
+      pendings: 0,
+      dones: 0,
+      doings: 0,
+      errors: 0,
+    };
 
     unlinkdCount += typeNames.size;
     registeds[name] = item;
@@ -233,7 +308,7 @@ function Main(cnf, deps) {
   };
 
   // link 消息订阅
-  const link = (name, type, waiter) => {
+  const link = (name: string, type: string, waiter: Function) => {
     if (!registeds[name]) throw errors.linkUnregistedMessage(name);
     const { typeNames } = registeds[name];
     if (!typeNames.has(type)) throw errors.linkUnknowTypes(name, type);
@@ -252,7 +327,7 @@ function Main(cnf, deps) {
   // name string 消息名称
   // data any 消息数据
   // callback function 消息执行完毕回调
-  const submit = (name, data, callback) => {
+  const submit = (name: string, data: any, callback?: Function) => {
     if (!registeds[name]) {
       // 这里记录error就可以了。throw没有意义，因为submit是异步的
       // throw error并没有被捕获，还会导致调用方的后续代码不执行
@@ -273,7 +348,7 @@ function Main(cnf, deps) {
   // 在消息分发执行的时候遇到超时会调用超时通知函数
   // type string 类型，error or timeout
   // fn function 通知函数
-  const setFn = (type, fn) => {
+  const setFn = (type: "error" | "timeout", fn: (...args: any[]) => any) => {
     if (!fns[type]) throw errors.setFnNotAllowed(type);
     // 这里之所以会用 tryCatchLog 封装函数，是不想让这些函数的执行影响主流程
     // 这些函数内部抛出的异常不会导致主流程执行中断
@@ -302,6 +377,4 @@ function Main(cnf, deps) {
   return { isExiting, isExited, checkReady, getStats, getUnlinks, regist, link, submit, setFn };
 }
 
-Main.Deps = ["_", "async", "logger", "utils", "redis", "graceful"];
-
-module.exports = Main;
+export const Deps = ["logger", "utils", "redis", "graceful"];

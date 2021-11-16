@@ -1,6 +1,4 @@
-const _ = require("lodash");
-const async = require("async");
-const MCenter = require("..");
+import { Main as Cia } from "..";
 
 process.on("uncaughtException", console.error);
 process.on("unhandledRejection", console.error);
@@ -11,7 +9,7 @@ const sleep = (MS = 1000) =>
     setTimeout(resolve, MS);
   });
 
-describe("MCenter", () => {
+describe("Cia", () => {
   const cnf = {
     cia: {},
   };
@@ -50,14 +48,12 @@ describe("MCenter", () => {
       hgetall: jest.fn(),
     };
     const deps = {
-      _,
-      async,
       logger,
       redis,
       graceful,
       U: { tryCatchLog },
     };
-    const cia = MCenter(cnf, deps);
+    const cia = Cia(cnf, deps);
     redis.hgetall.mockResolvedValueOnce({
       message_uuid: JSON.stringify({
         id: "message uuid",
