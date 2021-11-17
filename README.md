@@ -16,11 +16,10 @@
 # deps
 | 模块名 | 别名 | 用到的方法 | 描述 |
 | ------ | ---- | ---------- | ---- |
-| _ | None | isFunction, map  | lodash |
-| async | None | eachSeries, queue| npm i async |
 | logger | None | info, error | domain.js/logger |
 | utils | U | tryCatchLog | utils functions |
 | redis | None | hset, hdel, hgetall | domain.js/redis | 
+| graceful | None | exit | domain.js/graceful | 
 
 
 # Usage
