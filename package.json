@@ -1,6 +1,6 @@
 {
   "name": "@domain.js/cia",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "domain.js center 消息任务通用模块",
   "main": "dist/index.js",
   "scripts": {
